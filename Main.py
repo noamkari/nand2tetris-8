@@ -35,6 +35,18 @@ def translate_file(
         elif parser.command_type() == "C_PUSH" or parser.command_type() == "C_POP":
             code_writer.write_push_pop(parser.command_type(), parser.arg1(),
                                        parser.arg2())
+        elif parser.command_type() == "C_LABEL":
+            code_writer.write_label(parser.arg1())
+        elif parser.command_type() == "C_GOTO":
+            code_writer.write_goto(parser.arg1())
+        elif parser.command_type() == "C_IF":
+            code_writer.write_if(parser.arg1())
+        elif parser.command_type() == "C_FUNCTION":
+            code_writer.write_function(parser.arg1(), parser.arg2())
+        elif parser.command_type() == "C_RETURN":
+            code_writer.write_return()
+        elif parser.command_type() == "C_CALL":
+            code_writer.write_call(parser.arg1(),parser.arg2())
         parser.advance()
 
 

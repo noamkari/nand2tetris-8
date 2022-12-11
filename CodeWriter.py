@@ -8,6 +8,7 @@ Unported [License](https://creativecommons.org/licenses/by-nc-sa/3.0/).
 import typing
 import os
 
+
 class CodeWriter:
     """Translates VM commands into Hack assembly code."""
 
@@ -25,8 +26,10 @@ class CodeWriter:
                                    "this": "THIS", "that": "THAT",
                                    "pointer": 3, "temp": 5}
         self._vm_file_name = ''
-        self.counter = 0
+        self.comp_i = 0
+        self.call_i = 0
 
+        self.function_counter = 0
     def set_file_name(self, filename: str) -> None:
         """Informs the code writer that the translation of a new VM file is
         started.
@@ -184,7 +187,9 @@ class CodeWriter:
         # (function_name)       // injects a function entry label into the code
         # repeat n_vars times:  // n_vars = number of local variables
         #   push constant 0     // initializes the local variables to 0
-        pass
+        self.write_label(function_name)
+        for i in range(n_vars):
+            self.write_push_pop("C_PUSH", "constant", 0)
 
     def write_call(self, function_name: str, n_args: int) -> None:
         """Writes assembly code that affects the call command. 
@@ -214,7 +219,17 @@ class CodeWriter:
         # LCL = SP              // repositions LCL
         # goto function_name    // transfers control to the callee
         # (return_address)      // injects the return address label into the code
-        pass
+        self.call_i += 1
+        return_address = f"return_{function_name}{self.call_i}"
+        self.output_stream.write(f"@{return_address}\nD=A\n@SP\nA=M\nM=D\n@SP\nM=M+1\n")
+        for segment in ["LCL", "ARG", "THIS", "THAT"]:
+            self.output_stream.write(f"@{segment}\nD=M\n@SP\nA=M\nM=D\n@SP\nM=M+1\n")
+        # ARG = SP-5-n_args
+        self.output_stream.write(f"@{n_args}\nD=A\n@SP\nD=M-D\n@5\nD=D-A\n@ARG\nM=D\n")
+        # LCL = SP
+        self.output_stream.write(f"@SP\nD=M\n@LCL\nM=D\n")
+        self.write_goto(function_name)
+        self.write_label(f"return_{function_name}{self.call_i}")
 
     def write_return(self) -> None:
         """Writes assembly code that affects the return command."""
@@ -230,60 +245,67 @@ class CodeWriter:
         # ARG = *(frame-3)              // restores ARG for the caller
         # LCL = *(frame-4)              // restores LCL for the caller
         # goto return_address           // go to the return address
-        pass
+        self.output_stream.write("@LCL\nD=M\n@13\nM=D\n")
+        self.output_stream.write("@13\nD=M\n@5\nD=D-A\nA=D\nD=M\n@14\nM=D\n")
+        self.output_stream.write(
+            "@SP\nA=M-1\nD=M\n@ARG\nA=M\nM=D\n@SP\nM=M-1\n")
+        self.output_stream.write("@ARG\nD=M+1\n@SP\nM=D\n")
+        for i, segment in enumerate(["THAT", "THIS", "ARG", "LCL"]):
+            self.output_stream.write(
+                f"@13\nD=M\n@{i + 1}\nA=D-A\nD=M\n@{segment}\nM=D\n")
+        self.output_stream.write("@14\nA=M\n0;JMP\n")
 
     def compare(self, command):
-        self.counter += 1
+        self.comp_i += 1
         return f"@SP\n" \
                f"M=M-1\n" \
                f"A=M\n" \
                f"D=M\n" \
                f"@R13\nM=D\n" \
-               f"@YPOS{self.counter}\nD;JGT\n" \
+               f"@YPOS{self.comp_i}\nD;JGT\n" \
                f"@SP\n" \
                f"M=M-1\n" \
                f"A=M\n" \
                f"D=M\n" \
-               f"@YNEGXPOS{self.counter}\nD;JGT\n" \
-               f"(CHECK{self.counter})\n" \
+               f"@YNEGXPOS{self.comp_i}\nD;JGT\n" \
+               f"(CHECK{self.comp_i})\n" \
                f"@R13\nD=D-M\n" \
-               f"@TRUE{self.counter}\nD;{command}\n" \
-               f"@FALSE{self.counter}\n0;JMP\n" \
-               f"(YPOS{self.counter})\n" \
+               f"@TRUE{self.comp_i}\nD;{command}\n" \
+               f"@FALSE{self.comp_i}\n0;JMP\n" \
+               f"(YPOS{self.comp_i})\n" \
                f"@SP\n" \
                f"M=M-1\n" \
                f"A=M\n" \
                f"D=M\n" \
-               f"@YPOSXNEG{self.counter}\nD;JLT\n" \
-               f"@CHECK{self.counter}\n0;JMP\n" \
-               f"(YNEGXPOS{self.counter})\n" \
+               f"@YPOSXNEG{self.comp_i}\nD;JLT\n" \
+               f"@CHECK{self.comp_i}\n0;JMP\n" \
+               f"(YNEGXPOS{self.comp_i})\n" \
                f"D=1\n" \
-               f"@CHECK{self.counter}\n0;JMP\n" \
-               f"(YPOSXNEG{self.counter})\nD=-1\n" \
-               f"@CHECK{self.counter}\n0;JMP\n" \
-               f"(FALSE{self.counter})\n" \
+               f"@CHECK{self.comp_i}\n0;JMP\n" \
+               f"(YPOSXNEG{self.comp_i})\nD=-1\n" \
+               f"@CHECK{self.comp_i}\n0;JMP\n" \
+               f"(FALSE{self.comp_i})\n" \
                f"@SP\n" \
                f"A=M\n" \
                f"M=0\n" \
-               f"@END{self.counter}\n0;JMP\n" \
-               f"(TRUE{self.counter})\n" \
+               f"@END{self.comp_i}\n0;JMP\n" \
+               f"(TRUE{self.comp_i})\n" \
                f"@SP\n" \
                f"A=M\n" \
                f"M=-1\n" \
-               f"@END{self.counter}\n0;JMP\n" \
-               f"(END{self.counter})\n@SP\nM=M+1\n"
+               f"@END{self.comp_i}\n0;JMP\n" \
+               f"(END{self.comp_i})\n@SP\nM=M+1\n"
 
     def _unary_operation(self, command, before_after) -> str:
         code = f"@SP\n" \
                f"M=M-1\n" \
                f"A=M\n"
         if before_after == "before":
-               code+=f"M={command}M\n"
+            code += f"M={command}M\n"
         elif before_after == "after":
             code += f"M=M{command}\n"
         return code + f"@SP\n" \
-               f"M=M+1\n"
-
+                      f"M=M+1\n"
 
     # binary
 
