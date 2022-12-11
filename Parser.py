@@ -73,7 +73,14 @@ class Parser:
                                    "shiftleft": "C_ARITHMETIC",
                                    "shiftright": "C_ARITHMETIC",
                                    "push": "C_PUSH",
-                                   "pop": "C_POP"}
+                                   "pop": "C_POP",
+                                   "label": "C_LABEL",
+                                   "goto": "C_GOTO",
+                                   "if-goto": "C_IF",
+                                   "function": "C_FUNCTION",
+                                   "return": "C_RETURN",
+                                   "call": "C_CALL"
+                                   }
 
     def has_more_commands(self) -> bool:
         """Are there more commands in the input?

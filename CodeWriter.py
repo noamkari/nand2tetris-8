@@ -8,6 +8,7 @@ Unported [License](https://creativecommons.org/licenses/by-nc-sa/3.0/).
 import typing
 import os
 
+
 class CodeWriter:
     """Translates VM commands into Hack assembly code."""
 
@@ -141,7 +142,8 @@ class CodeWriter:
         """
         # This is irrelevant for project 7,
         # you will implement this in project 8!
-        pass
+        code = f"({label})\n"
+        self.output_stream.write(code)
 
     def write_goto(self, label: str) -> None:
         """Writes assembly code that affects the goto command.
@@ -151,7 +153,8 @@ class CodeWriter:
         """
         # This is irrelevant for project 7,
         # you will implement this in project 8!
-        pass
+        code = f"@{label}\n0;JMP\n"
+        self.output_stream.write(code)
 
     def write_if(self, label: str) -> None:
         """Writes assembly code that affects the if-goto command. 
@@ -161,7 +164,8 @@ class CodeWriter:
         """
         # This is irrelevant for project 7,
         # you will implement this in project 8!
-        pass
+        code = f"@SP\nM=M-1\nA=M\nD=M\n@{label}\nD;JNE\n"
+        self.output_stream.write(code)
 
     def write_function(self, function_name: str, n_vars: int) -> None:
         """Writes assembly code that affects the function command. 
@@ -275,12 +279,11 @@ class CodeWriter:
                f"M=M-1\n" \
                f"A=M\n"
         if before_after == "before":
-               code+=f"M={command}M\n"
+            code += f"M={command}M\n"
         elif before_after == "after":
             code += f"M=M{command}\n"
         return code + f"@SP\n" \
-               f"M=M+1\n"
-
+                      f"M=M+1\n"
 
     # binary
 
