@@ -56,9 +56,14 @@ class Parser:
         # A good place to start is to read all the lines of the input:
         # input_lines = input_file.read().splitlines()
 
-        self._input_lines = [line.replace('\n', '') for line in
-                             input_file.read().splitlines()
-                             if line != '' and "//" not in line]
+        self._input_lines = []
+        for line in input_file.read().splitlines():
+            line = line.split("//")[0]
+            if line == '':
+                continue
+            line = " ".join(line.split())
+
+            self._input_lines.append(line)
 
         self._seek = 0
         self._command_type_dict = {"add": "C_ARITHMETIC",
