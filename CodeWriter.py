@@ -257,22 +257,18 @@ class CodeWriter:
 
     def compare(self, command):
         self.comp_i += 1
-        return f"@SP\n" \
+        stack_to_d = f"@SP\n" \
                f"M=M-1\n" \
                f"A=M\n" \
                f"D=M\n" \
-               f"@R13\nM=D\n" \
-               f"@YPOS{self.comp_i}\nD;JGT\n" \
-               f"@SP\n" \
-               f"M=M-1\n" \
-               f"A=M\n" \
-               f"D=M\n" \
-               f"@YNEGXPOS{self.comp_i}\nD;JGT\n" \
-               f"(CHECK{self.comp_i})\n" \
-               f"@R13\nD=D-M\n" \
-               f"@TRUE{self.comp_i}\nD;{command}\n" \
-               f"@FALSE{self.comp_i}\n0;JMP\n" \
-               f"(YPOS{self.comp_i})\n" \
+
+        code = stack_to_d + f"@R13\nM=D\n"
+        code += f"@YPOS{self.comp_i}\nD;JGT\n"
+        code += stack_to_d +  f"@YNEGXPOS{self.comp_i}\nD;JGT\n"
+        code += f"(CHECK{self.comp_i})\n@R13\nD=D-M\n" \
+                f"@TRUE{self.comp_i}\nD;{command}\n" \
+                f"@FALSE{self.comp_i}\n0;JMP\n"
+        code+= f"(YPOS{self.comp_i})\n" \
                f"@SP\n" \
                f"M=M-1\n" \
                f"A=M\n" \
@@ -280,7 +276,7 @@ class CodeWriter:
                f"@YPOSXNEG{self.comp_i}\nD;JLT\n" \
                f"@CHECK{self.comp_i}\n0;JMP\n" \
                f"(YNEGXPOS{self.comp_i})\n" \
-               f"D=1\n" \
+               f"@R13\nM=-1\n" \
                f"@CHECK{self.comp_i}\n0;JMP\n" \
                f"(YPOSXNEG{self.comp_i})\nD=-1\n" \
                f"@CHECK{self.comp_i}\n0;JMP\n" \
@@ -295,7 +291,7 @@ class CodeWriter:
                f"M=-1\n" \
                f"@END{self.comp_i}\n0;JMP\n" \
                f"(END{self.comp_i})\n@SP\nM=M+1\n"
-
+        return code
     def _unary_operation(self, command, before_after) -> str:
         code = f"@SP\n" \
                f"M=M-1\n" \
@@ -320,3 +316,7 @@ class CodeWriter:
                f"M=M{command}D\n" \
                f"@SP\n" \
                f"M=M+1\n"
+
+    def writeBootstrap(self):
+        self.output_stream.write("@256\nD=A\n@SP\nM=D\n")
+        self.write_call("Sys.init",0)

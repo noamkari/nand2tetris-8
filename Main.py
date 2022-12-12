@@ -29,6 +29,7 @@ def translate_file(
     parser = Parser(input_file)
     code_writer = CodeWriter(output_file)
     code_writer.set_file_name(input_filename)
+    code_writer.writeBootstrap()
     while parser.has_more_commands():
         if parser.command_type() == "C_ARITHMETIC":
             code_writer.write_arithmetic(parser.arg1())
